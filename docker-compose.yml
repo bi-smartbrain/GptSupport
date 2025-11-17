@@ -1,8 +1,8 @@
 services:
-  gpt-notes:
+  gpt-support:
     build: .
-    image: gpt-notes:latest
-    container_name: gpt-notes
+    image: gpt-support:latest
+    container_name: gpt-support
     restart: unless-stopped
     working_dir: /app
     environment:
