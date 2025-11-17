@@ -19,12 +19,16 @@ params_chat_3 = {
     "chat_id": chat_id_3,  # Узкий круг
 }
 
-# Обработчик для чата Андрей
+# Обработчик для чата Андрей с фильтром исключающим SUCCESS
 tg_handler_1 = NotificationHandler("telegram", defaults=params_chat_1)
 
 # Обработчик для чата Узкий круг
 tg_handler_3 = NotificationHandler("telegram", defaults=params_chat_3)
 
-# Добавляем обработчики к логеру
-logger.add(tg_handler_1, level="DEBUG")
+# Функция-фильтр для исключения SUCCESS сообщений
+def filter_success(record):
+    return record["level"].name != "SUCCESS"
+
+# Добавляем обработчики к логеру с фильтром для первого чата
+logger.add(tg_handler_1, level="DEBUG", filter=filter_success)
 logger.add(tg_handler_3, level="SUCCESS")
