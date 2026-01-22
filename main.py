@@ -65,7 +65,7 @@ def gpt_support(smartview: str, timesleep_minutes: int = 5, skip_weekends=True, 
                 continue
 
             # переводим важные письма и уведомляем в TG
-            if 'interested' or 'invoice' in gpt_answ[:10]:
+            if 'interested' in gpt_answ[:10] or 'invoice' in gpt_answ[:10]:
                 prefix_prompt_for_translate = (
                     "Переведи на русский язык письмо, которое я тебе отправляю. "
                     "Дай свой ответ в json форме: {'source_lang': 'тут укажи исходный язык отправленного для перевода "
