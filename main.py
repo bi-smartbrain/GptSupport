@@ -51,8 +51,8 @@ def gpt_support(smartview: str, timesleep_minutes: int = 5, skip_weekends=True, 
                 continue
 
             # определяем характер (статус) ответа
-            email_context = f.get_context(email, lenght=500)
-            email_context = f.hide_numbers(email_context)
+            email_context_raw = f.get_context(email, lenght=500)
+            email_context = f.hide_numbers(email_context_raw)
             email_context = f.hide_emails(email_context)
             email_context = f.hide_urls(email_context)
             prompt_for_status = prefix_prompt_for_status + email_context
@@ -64,21 +64,25 @@ def gpt_support(smartview: str, timesleep_minutes: int = 5, skip_weekends=True, 
                 print("Лид будет пропущен, ошибка при обращении к GPT:", e)
                 continue
 
-            # переводим важные письма и уведомляем в TG
+            # уведомляем о важных статусах в TG
             if 'interested' in gpt_answ[:10] or 'invoice' in gpt_answ[:10]:
-                prefix_prompt_for_translate = (
-                    "Переведи на русский язык письмо, которое я тебе отправляю. "
-                    "Дай свой ответ в json форме: {'source_lang': 'тут укажи исходный язык отправленного для перевода "
-                    "письма'. Если исходное письмо для перевода было на английском языке, укажи в 'source_lang': "
-                    "'Английский',  если письмо было на другом языке, укажи - на каком, например Французский, Немецкий."
-                    "translated_text: 'тут вставь текст письма в русском переводе'}. \n"
-                    "Если письмо, которое я тебе отправляю, итак на русском языке, "
-                    "то translated_text оставь пустой строкой. \n"
-                    "Итак вот текст письма для перевода:\n"
-                )
 
-                prompt_for_translate = prefix_prompt_for_translate + email_context
-                translated_answ = f.ask_gpt(prompt_for_translate)
+                translated_answ = email_context_raw  # для всех кроме интерестед в тг пойдет исходный текст письма
+                # переводим Interested-status
+                if 'interested' in gpt_answ[:10]:
+                    prefix_prompt_for_translate = (
+                        "Переведи на русский язык письмо, которое я тебе отправляю. "
+                        "Дай свой ответ в json форме: {'source_lang': 'тут укажи исходный язык отправленного для перевода "
+                        "письма'. Если исходное письмо для перевода было на английском языке, укажи в 'source_lang': "
+                        "'Английский',  если письмо было на другом языке, укажи - на каком, например Французский, Немецкий."
+                        "translated_text: 'тут вставь текст письма в русском переводе'}. \n"
+                        "Если письмо, которое я тебе отправляю, итак на русском языке, "
+                        "то translated_text оставь пустой строкой. \n"
+                        "Итак вот текст письма для перевода:\n"
+                    )
+
+                    prompt_for_translate = prefix_prompt_for_translate + email_context
+                    translated_answ = f.ask_gpt(prompt_for_translate)
 
                 # формируем сообщение для уведомления
                 icon = ""
