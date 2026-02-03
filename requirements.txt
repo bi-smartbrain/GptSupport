@@ -1,5 +1,5 @@
 gspread~=6.2.1
-g4f~=6.6.6
+g4f~=7.0.0
 dotenv~=0.9.9
 python-dotenv~=1.2.1
 closeio~=2.1

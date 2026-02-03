@@ -36,6 +36,10 @@ def gpt_support(smartview: str, timesleep_minutes: int = 5, skip_weekends=True, 
                 print('Проверка лида отменена, последнее входящее является авто отбивкой')
                 continue
 
+            email_to = str(email.get('to', ""))
+            email_subject = str(email.get('subject', ""))
+            email_body = email.get('body_text', "")[:500]
+            email_body = f.extract_first_paragraphs(email_body, max_paragraphs=3, max_chars=500)
             email_id = email.get('id')
             email_at = f.plus_3_hours(email['date_updated'])[:16].replace('T', ' ')
 
@@ -64,36 +68,27 @@ def gpt_support(smartview: str, timesleep_minutes: int = 5, skip_weekends=True, 
                 print("Лид будет пропущен, ошибка при обращении к GPT:", e)
                 continue
 
-            # уведомляем о важных статусах в TG
-            if 'interested' in gpt_answ[:10] or 'invoice' in gpt_answ[:10]:
+            # уведомляем об 'interested' в TG
+            if 'interested' in gpt_answ[:10]:
 
-                translated_answ = email_context_raw  # для всех кроме интерестед в тг пойдет исходный текст письма
                 # переводим Interested-status
-                if 'interested' in gpt_answ[:10]:
-                    prefix_prompt_for_translate = (
-                        "Переведи на русский язык письмо, которое я тебе отправляю. "
-                        "Дай свой ответ в json форме: {'source_lang': 'тут укажи исходный язык отправленного для перевода "
-                        "письма'. Если исходное письмо для перевода было на английском языке, укажи в 'source_lang': "
-                        "'Английский',  если письмо было на другом языке, укажи - на каком, например Французский, Немецкий."
-                        "translated_text: 'тут вставь текст письма в русском переводе'}. \n"
-                        "Если письмо, которое я тебе отправляю, итак на русском языке, "
-                        "то translated_text оставь пустой строкой. \n"
-                        "Итак вот текст письма для перевода:\n"
-                    )
+                prefix_prompt_for_translate = (
+                    "Переведи на русский язык письмо, которое я тебе отправляю. "
+                    "Дай свой ответ в json форме: {'source_lang': 'тут укажи исходный язык отправленного для перевода "
+                    "письма'. Если исходное письмо для перевода было на английском языке, укажи в 'source_lang': "
+                    "'Английский',  если письмо было на другом языке, укажи - на каком, например Французский, Немецкий."
+                    "translated_text: 'тут вставь текст письма в русском переводе'}. \n"
+                    "Если письмо, которое я тебе отправляю, итак на русском языке, "
+                    "то translated_text оставь пустой строкой. \n"
+                    "Итак вот текст письма для перевода:\n"
+                )
 
-                    prompt_for_translate = prefix_prompt_for_translate + email_context
-                    translated_answ = f.ask_gpt(prompt_for_translate)
+                prompt_for_translate = prefix_prompt_for_translate + email_context
+                translated_answ = f.ask_gpt(prompt_for_translate)
 
                 # формируем сообщение для уведомления
-                icon = ""
+                icon = "🔥"
                 tag = ""
-
-                if "interested" in gpt_answ[:10]:
-                    icon = "🔥"
-                if "invoice" in gpt_answ[:10]:
-                    icon = "💳"
-                    tag = "@karyushka"
-
 
                 try:
                     answ_dict = f.parse_api_response(translated_answ)
@@ -102,7 +97,7 @@ def gpt_support(smartview: str, timesleep_minutes: int = 5, skip_weekends=True, 
                     else:
                         text = answ_dict['translated_text']
                     message = (
-                        f"\n{tag}\n{icon}Похоже {gpt_answ}\n\n"
+                        f"\n{tag} {icon}Похоже {gpt_answ}\n\n"
 
                         f"Получено: {email_at}\n"
                         f"Исходный язык: {answ_dict['source_lang']}\n\n"
@@ -113,14 +108,32 @@ def gpt_support(smartview: str, timesleep_minutes: int = 5, skip_weekends=True, 
                 except Exception as e:
                     print(f'Ошибка при попыпытке распарсинга GPT-ответа с переводом письма: {e}')
                     message = (
-                        f"\n\nПохоже {gpt_answ}\n\n"
+                        f"\n{tag} {icon}Похоже {gpt_answ}\n\n"
 
                         f"Получено: {email_at}\n"
                         f"Тема: {email_context}\n\n"
                         f"{lead['html_url']}"
                     )
+                    logger.success(message)
 
+
+            # уведомляем в TG об 'invoice'
+            if 'invoice' in gpt_answ[:10] and 'info@' in email_to:
+                # формируем сообщение для уведомления
+                icon = "💳"
+                tag = "@karyushka"
+                message = (
+                    f"\n{tag} {icon}Похоже {gpt_answ}\n\n"
+                    
+                    f"Получено: {email_at}\n"
+                    f"Ящик: {email_to}\n"
+                    f"Тема: {email_subject}\n"
+                    f"Текст: {email_body} ...\n\n"
+                    
+                    f"{lead['html_url']}\n"
+                )
                 logger.success(message)
+
 
             # формируем строку для отчета
             report_row = [
@@ -134,7 +147,7 @@ def gpt_support(smartview: str, timesleep_minutes: int = 5, skip_weekends=True, 
             ]
             report.append(report_row)
 
-        # добавляем отчет в таблицу истории проеверок
+        # добавляем отчет в таблицу истории проверок
         if report:
             f.add_report_to_sheet(spread, sheet, report)
 

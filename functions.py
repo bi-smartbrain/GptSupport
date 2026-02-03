@@ -109,6 +109,46 @@ def add_report_to_sheet(spread, sheet, report):
 
     print("Отчет добавлен")
 
+
+def extract_first_paragraphs(text, max_paragraphs=3, max_chars=500):
+    """
+    Извлекает первые N абзацев из текста, ограничивая общее количество символов.
+
+    Args:
+        text (str): исходный текст
+        max_paragraphs (int): максимальное количество абзацев для извлечения
+        max_chars (int): максимальное общее количество символов
+
+    Returns:
+        str: извлеченный текст
+    """
+    if not text:
+        return ""
+
+    # Разделяем текст на абзацы (по переносу строки)
+    paragraphs = text.split('\n')
+
+    # Фильтруем пустые абзацы (если нужно)
+    non_empty_paragraphs = [p for p in paragraphs if p.strip()]
+
+    # Берем первые max_paragraphs абзацев
+    selected_paragraphs = non_empty_paragraphs[:max_paragraphs]
+
+    # Собираем обратно в текст
+    result = '\n'.join(selected_paragraphs)
+
+    # Обрезаем до max_chars символов, если необходимо
+    if len(result) > max_chars:
+        # Обрезаем, но стараемся не обрезать середину слова
+        result = result[:max_chars]
+        # Находим последний пробел или перенос строки для красивого обрезания
+        last_space = max(result.rfind(' '), result.rfind('\n'))
+        if last_space > max_chars * 0.8:  # Обрезаем только если есть разумное место
+            result = result[:last_space].rstrip()
+
+    return result
+
+
 def get_context(email, lenght=100):
     if email:
         text = email['body_text'][:lenght].strip()
